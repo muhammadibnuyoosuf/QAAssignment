@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "Shiparc.AI - Combined Engagement Score API",
+    "description": "Functional, negative, auth, and security tests for GET /api/admin/dashboard/engagement/combined-engagement-score (Company Admin Home dashboard).\n\nIMPORTANT - AUTH SETUP: the login endpoint blocks scripted clients (Postman, Newman, raw HTTP requests) even with correct credentials, so this collection authenticates via a manually-pasted session cookie instead of scripting the login - see Login_Flow_Notes.md for why.\n\nWORKAROUND (do this first):\n1. Log into https://project.shiparc.ai/ as Company Admin in a real browser.\n2. Open DevTools > Network, find any authenticated request (e.g. combined-engagement-score), open its Headers tab, and copy the value of the session cookie from the Request Headers 'cookie' line - the one starting with '__Secure-next-auth.session-token' (NextAuth may split a large JWT across '__Secure-next-auth.session-token', '.0', '.1' etc. - if so, verify the exact cookie name(s) in your browser's Cookies tab and concatenate the values in order).\n3. Paste that value into this collection's 'admin_session_cookie' variable (Variables tab, 'CURRENT VALUE' column).\n4. Repeat with a Crew-role login to fill in 'crew_session_cookie' (needed only for A-02).\n5. In Postman Settings > General, turn on 'Disable cookies' - otherwise Postman's own cookie jar can auto-attach a stray session cookie to A-01, which is deliberately testing the no-cookie case.\n6. Run '0. SETUP' first to confirm the pasted cookie actually authenticates, then run folders 1-4 in any order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://project.shiparc.ai" },
+    { "key": "company_id", "value": "cmgrlybyk00uqrzs7j3eq3hrf" },
+    { "key": "vessel_id", "value": "cmgt4qqg4000rs0qjcd1lx2vr" },
+    { "key": "session_cookie_name", "value": "__Secure-next-auth.session-token" },
+    { "key": "admin_session_cookie", "value": "PASTE_ADMIN_SESSION_COOKIE_VALUE_HERE", "type": "string" },
+    { "key": "crew_session_cookie", "value": "PASTE_CREW_SESSION_COOKIE_VALUE_HERE", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. SETUP (read me first)",
+      "item": [
+        {
+          "name": "Verify pasted admin session cookie works",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": "{{base_url}}/api/auth/session",
+            "description": "Scripted login is blocked by this app's anti-automation protection (see collection description and Login_Flow_Notes.md). This request does NOT log in - it just confirms that the session cookie you manually pasted into 'admin_session_cookie' is valid, by calling NextAuth's own /api/auth/session endpoint and checking it returns the admin user. If this fails, re-copy the cookie value from a fresh browser login (session cookies expire/rotate)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('session has a user (cookie is valid)', () => {",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json.user).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Positive",
+      "item": [
+        {
+          "name": "P-01 Fleet-wide, compact=true",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('has overallIndex', () => pm.expect(json).to.have.property('overallIndex'));",
+                  "pm.test('has vesselWiseEngagement array', () => pm.expect(json.vesselWiseEngagement).to.be.an('array'));",
+                  "pm.test('compact response omits sum* fields', () => {",
+                  "  pm.expect(json).to.not.have.property('sumOfAllCrewScores');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P-02 Fleet-wide, compact=false",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "false" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('non-compact response includes sum* fields', () => {",
+                  "  pm.expect(json).to.have.property('sumOfAllCrewScores');",
+                  "  pm.expect(json).to.have.property('sumOfAllTrainingCrewScores');",
+                  "  pm.expect(json).to.have.property('sumOfAllQuizCrewScores');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P-03 Single vessel filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds={{vessel_id}}&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "{{vessel_id}}" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P-04 Different month range (August)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-08-01T00:00:01.000Z&endDate=2026-08-31T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-08-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-08-31T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Negative & Validation",
+      "item": [
+        {
+          "name": "N-01 Missing companyId -> expect 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message mentions companyId', () => pm.expect(pm.response.text()).to.include('companyId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N-02 Missing dates with CUSTOM filter -> expect 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N-03 [DEFECT API-02] Garbage companyId returns 200 not 400/404",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId=invalid123&vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "invalid123" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('DEFECT: currently returns 200 with all-zero payload (expected 400/404)', () => {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.overallIndex).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N-04 [DEFECT API-03] endDate before startDate not validated",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-30T23:59:59.999Z&endDate=2026-09-01T00:00:01.000Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "endDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('DEFECT: inverted date range silently accepted (returns 200, expected 400)', () => {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "N-05 [DEFECT API-04] Malformed date leaks raw SQL in 500 error",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=notadate&endDate=notadate&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "notadate" },
+                { "key": "endDate", "value": "notadate" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('DEFECT: 500 with raw SQL/schema leaked in body (expected generic 400)', () => {",
+                  "  pm.expect(pm.response.code).to.eql(500);",
+                  "  pm.expect(pm.response.text()).to.include('queryRawUnsafe');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Auth & Authorization",
+      "item": [
+        {
+          "name": "A-01 No session cookie -> expect 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            },
+            "description": "Deliberately has NO Cookie header - this is the one request in the collection that must NOT carry the session cookie, since it's testing the unauthenticated case. Requires Postman's 'Disable cookies' setting to be on (see collection description) so its own cookie jar can't auto-attach a session cookie behind the scenes."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.cookies.jar().clear(pm.variables.get('base_url'), function (error) {",
+                  "  if (error) console.log('A-01 pre-request cookie clear error:', error);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A-02 Crew role session -> expect 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{crew_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-01T00:00:01.000Z&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            },
+            "description": "Uses 'crew_session_cookie' instead of 'admin_session_cookie' - paste a session cookie obtained from a real browser login as the crew test user (testuser.crew / see config in 03_Automation_Testing/config/config.ini)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Security",
+      "item": [
+        {
+          "name": "S-01 [DEFECT API-05 CRITICAL] SQL injection probe on startDate",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "{{session_cookie_name}}={{admin_session_cookie}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/dashboard/engagement/combined-engagement-score?companyId={{company_id}}&vesselIds=all&startDate=2026-09-01T00%3A00%3A01.000Z%27&endDate=2026-09-30T23:59:59.999Z&dateFilter=CUSTOM&compact=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "dashboard", "engagement", "combined-engagement-score"],
+              "query": [
+                { "key": "companyId", "value": "{{company_id}}" },
+                { "key": "vesselIds", "value": "all" },
+                { "key": "startDate", "value": "2026-09-01T00:00:01.000Z'" },
+                { "key": "endDate", "value": "2026-09-30T23:59:59.999Z" },
+                { "key": "dateFilter", "value": "CUSTOM" },
+                { "key": "compact", "value": "true" }
+              ]
+            },
+            "description": "A single trailing quote on startDate breaks the raw SQL query server-side and the error response echoes the query text back - error-based confirmation of SQL injection via prisma.$queryRawUnsafe(). Do not extend this probe to UNION/boolean-blind extraction without explicit engagement sign-off."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('CRITICAL DEFECT: single quote breaks raw SQL query (500, query text leaked)', () => {",
+                  "  pm.expect(pm.response.code).to.eql(500);",
+                  "  pm.expect(pm.response.text()).to.include('queryRawUnsafe');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

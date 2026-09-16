@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# virtual environments
+.venv/
+venv/
+env/
+.env
+
+# logs
+*.log
+
+# IDE
+.idea/
+
+# real local credentials - config.example.ini is the committed template
+config/config.ini
+
+# failure screenshots may capture on-screen session/application data
+screenshots/*.png
+screenshots/*.jpg
+!screenshots/.gitkeep
